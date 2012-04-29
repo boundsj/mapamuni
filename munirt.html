@@ -1,0 +1,32 @@
+<head>
+  <title>munirt</title>
+  <link rel="stylesheet" 
+        href="http://grafters.herokuapp.com/static/css/bootstrap-responsive.css">
+</head>
+
+<body>
+  {{> nav }}
+  {{> locations}}
+</body>
+
+<template name="nav">
+<div class="navbar navbar-fixed-top">
+  <div class="navbar-inner">
+    <div class="container">
+      <a class="brand" href="#">Map-a-Muni</a>
+    </div>
+  </div>
+</div>
+</template>
+
+<template name="locations">
+  <div class="container">
+  <div class="well span5">
+  <div class="locations">
+    {{#each munis}}
+      <h3>id={{id}}, lat={{lat}} lon={{lon}} secsSinceLast={{secsSinceReport}}</h3>
+    {{/each}}
+  </div>
+  </div>
+  </div>
+</template>

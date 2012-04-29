@@ -1,0 +1,7 @@
+npm install xml2js was installed to /usr/local/meteor/lib node_packages
+
+deploy local:
+add:
+var port = process.env.PORT || 3000;
+set:
+MONGO_URL=mongodb://localhost:27017/munirt
