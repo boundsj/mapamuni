@@ -12,7 +12,7 @@ if (Meteor.is_client) {
 if (Meteor.is_server) {
   Meteor.startup(function () {
 
-   // var xml2js = __meteor_bootstrap__.require('xml2js');
+    var xml2js = __meteor_bootstrap__.require('xml2js');
 
     console.log("munis server starting...");
     console.log("starting poll of muni real-time service...");
