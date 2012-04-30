@@ -2,11 +2,17 @@
   <title>munirt</title>
   <link rel="stylesheet" 
         href="http://grafters.herokuapp.com/static/css/bootstrap-responsive.css">
+
 </head>
 
 <body>
   {{> nav }}
+<div class="container">
+<div class="row">
   {{> locations}}
+  {{> viz }}
+</div>
+</div>
 </body>
 
 <template name="nav">
@@ -19,14 +25,19 @@
 </div>
 </template>
 
+<template name="viz">
+<div class="span8">
+<div id="map"></div>
+</div>
+</template>
+
 <template name="locations">
-  <div class="container">
-  <div class="well span5">
+  <div class="well span3">
   <div class="locations">
     {{#each munis}}
-      <h3>id={{id}}, lat={{lat}} lon={{lon}} secsSinceLast={{secsSinceReport}}</h3>
+      <h4>Vehicle={{id}}, Lat={{lat}}, Lon={{lon}}, Last Updated={{secsSinceReport}}</h4>
+      <hr />
     {{/each}}
-  </div>
   </div>
   </div>
 </template>

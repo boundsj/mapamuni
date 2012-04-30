@@ -1,19 +1,57 @@
 Munis = new Meteor.Collection("Munis");
+Alerts = new Meteor.Collection("Alerts");
 
 if (Meteor.is_client) {
+
+  yepnope({
+    load: ["http://leaflet.cloudmade.com/dist/leaflet.js", "http://leaflet.cloudmade.com/dist/leaflet.css"],
+    complete: function () {
+      var map = new L.Map('map');
+      var mapCenter = new L.LatLng(37.730599,-122.44339);
+      var mapZoom = 12;
+      var baseUrl = 'http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.jpg',
+          attrib = 'Map tiles by MapQuest',
+          baseLayer = new L.TileLayer(baseUrl, {attribution: attrib, maxZoom:18});
+      map.addLayer(baseLayer);
+      map.setView(mapCenter, mapZoom);
+      var group = new L.LayerGroup();
+      map.addLayer(group);
+
+      Alerts.find({name: "alert"}).observe({
+            added: function () {
+              updateMap(map, group, Munis.find(), L);
+            },
+            removed: function () {
+              console.log("removed");
+            },
+            changed: function () {
+              console.log("changed");
+            }
+      });
+    }
+  });
+
+  function updateMap(map, group, munis, L) {
+    if (map === null)
+      return;
+    group.clearLayers();
+    munis.forEach(function(muni) {
+      var latlng = new L.LatLng(muni.lat, muni.lon);
+      var marker = new L.CircleMarker(latlng);
+      marker.setRadius(4);
+      group.addLayer(marker);
+    });
+  }
+
   Template.locations.munis = function () {
     var munis = Munis.find();
-    console.log(munis);
-    return munis
+    return munis;
   };
 
 }
 
 if (Meteor.is_server) {
   Meteor.startup(function () {
-
-    var xml2js = __meteor_bootstrap__.require('xml2js');
-
     console.log("munis server starting...");
     console.log("starting poll of muni real-time service...");
 
@@ -21,25 +59,26 @@ if (Meteor.is_server) {
 
     function update() {
       Meteor.http.call("GET", "http://webservices.nextbus.com/service/publicXMLFeed?command=vehicleLocations&a=sf-muni&r=N&t=0", {}, function(error, result) {
-        var parser = new xml2js.Parser();
-        parser.parseString(result['content'], function (err, result) {
-          for (var i=0; i<result['vehicle'].length; i++) {
-            muni = result['vehicle'][i]['@'];
-            //Munis.insert(muni);
-            if (Munis.find({routeTag: muni['routeTag']}) === 0) {
-              console.log("muni id: " + muni['id'] + " not found; inserting");
-              Munis.insert(muni);
-            } else { 
-              console.log("muni id: " + muni['id'] + " found; updating");
-              Munis.update({id: muni['id']}, {$set: {lat: muni['lat'], lon: muni['lon'], secsSinceReport: muni['secsSinceReport']}});
-            }
+
+        munis = xml2json.parser(result['content']);
+
+        Alerts.remove({});
+        for (var i=0; i<munis['body']['vehicle'].length; i++) {
+          muni = munis['body']['vehicle'][i];
+          if (Munis.find({id: muni['id']}).count() === 0) {
+            console.log("muni id: " + muni['id'] + " not found; inserting");
+            Munis.insert(muni);
+          } else { 
+            //console.log("muni id: " + muni['id'] + " found; updating");
+            Munis.update({id: muni['id']}, {$set: {lat: muni['lat'], lon: muni['lon'], secsSinceReport: muni['secssincereport']}});
           }
-          Meteor.setTimeout(update, 10000);
-        });
+        }
+        Alerts.insert({name: "alert"});
+        Meteor.setTimeout(update, 5000);
       });
 
-      
     }
+
   });
 
 }
