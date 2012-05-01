@@ -11,7 +11,7 @@ if (Meteor.is_client) {
       var mapCenter = new L.LatLng(37.730599, -122.44339); 
       var mapZoom = 12;
       var baseUrl = 'http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.jpg',
-          attrib = 'Map tiles by MapQuest',
+          attrib = 'Map tiles by Stamen Design',
           baseLayer = new L.TileLayer(baseUrl, {attribution: attrib, maxZoom:18});
       map.addLayer(baseLayer);
       map.setView(mapCenter, mapZoom);
