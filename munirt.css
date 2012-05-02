@@ -1,8 +1,8 @@
-body {
-  padding-top: 60px;
-  padding-bottom: 40px;
-}
-#map {
-  width: 100%;
-  height: 800px;
-}
+    body {
+      padding-top: 41px;
+      margin: 0;
+    }
+    html, body, #map {
+      height: 100%;
+      width: 100%;
+    }

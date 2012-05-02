@@ -1,15 +1,15 @@
 Munis = new Meteor.Collection("Munis");
+Routes = new Meteor.Collection("Routes");
 Alerts = new Meteor.Collection("Alerts");
 
 if (Meteor.is_client) {
-
   yepnope({
     load: ["http://leaflet.cloudmade.com/dist/leaflet.js", 
            "http://leaflet.cloudmade.com/dist/leaflet.css"],
     complete: function () {
       var map = new L.Map('map');
       var mapCenter = new L.LatLng(37.730599, -122.44339); 
-      var mapZoom = 12;
+      var mapZoom = 11;
       var baseUrl = 'http://{s}.tile.stamen.com/toner/{z}/{x}/{y}.jpg',
           attrib = 'Map tiles by Stamen Design',
           baseLayer = new L.TileLayer(baseUrl, {attribution: attrib, maxZoom:18});
@@ -17,6 +17,7 @@ if (Meteor.is_client) {
       map.setView(mapCenter, mapZoom);
       var group = new L.LayerGroup();
       map.addLayer(group);
+
       function updateMap(map, group, munis, L) {
         if (map === null)
           return;
@@ -29,18 +30,33 @@ if (Meteor.is_client) {
           group.addLayer(marker);
         });
       }
+
       Alerts.find({name: "alert"}).observe({
             added: function () {
               updateMap(map, group, Munis.find(), L);
             }
       });
+
     }
+
   });
 
   Template.locations.munis = function () {
-    var munis = Munis.find();
-    return munis;
+    return Munis.find();
   };
+
+  Template.routes.routes = function() {
+    return Routes.find();
+  }
+  
+  Template.routes.events = {
+  'click .route': function () {
+    $(".routes").remove();
+    $("#map").css('visibility', 'visible');
+    console.log("clicked!");
+  }
+
+};
 
 }
 
@@ -48,14 +64,40 @@ if (Meteor.is_server) {
   Meteor.startup(function () {
     console.log("munis server starting...");
     console.log("starting poll of muni real-time service...");
+
+    getMuniRouteList();
     update();
-    function update() {
-      Meteor.http.call("GET", 
-        "http://webservices.nextbus.com/service/publicXMLFeed?command=vehicleLocations&a=sf-muni&r=N&t=0", 
-        {}, 
+
+    function getMuniRouteList() {
+      Routes.remove({});
+      Meteor.http.call("GET",
+        "http://webservices.nextbus.com/service/publicXMLFeed?command=routeList&a=sf-muni",
+        null,
         function(error, result) {
+          routes = xml2json.parser(result['content']);
+          console.log(routes['body']['route']);
+          for (var i=0; i<routes['body']['route'].length; i++) {
+            console.log(routes['body']['route'][i]);
+            Routes.insert(routes['body']['route'][i]);
+          }
+        }
+      );
+    }
+
+    function update() {
+      var d = new Date();
+      var lastTime = "0";
+      console.log(d.getTime() + ": calling muni service...");
+      Meteor.http.call("GET", 
+        "http://webservices.nextbus.com/service/publicXMLFeed?command=vehicleLocations&a=sf-muni&r=N&t=" + lastTime,
+        null, 
+        function(error, result) {
+          console.log(d.getTime() + ": call to muni service complete");
+
           munis = xml2json.parser(result['content']);
+          lastTime = munis['body']['lasttime']['time'];
           Alerts.remove({});
+
           for (var i=0; i<munis['body']['vehicle'].length; i++) {
             muni = munis['body']['vehicle'][i];
             if (Munis.find({id: muni['id']}).count() === 0) {
@@ -68,9 +110,10 @@ if (Meteor.is_server) {
                        secsSinceReport: muni['secssincereport']}});
             }
           }
-        Alerts.insert({name: "alert"});
-        Meteor.setTimeout(update, 5000);
-      });
+          Alerts.insert({name: "alert"});
+
+          Meteor.setTimeout(update, 10000);
+        });
     }
 
   });

@@ -1,5 +1,0 @@
-npm install xml2js was installed to /usr/local/meteor/lib node_packages
-
-above was removed and
-npm install xml2js was installed to /Users/jesse/.meteor/munirt/.meteor/local/build/server
-
