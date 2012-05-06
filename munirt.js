@@ -3,6 +3,7 @@ Routes = new Meteor.Collection("Routes");
 Alerts = new Meteor.Collection("Alerts");
 
 if (Meteor.is_client) {
+ 
   yepnope({
     load: ["http://leaflet.cloudmade.com/dist/leaflet.js", 
            "http://leaflet.cloudmade.com/dist/leaflet.css"],
@@ -25,8 +26,41 @@ if (Meteor.is_client) {
         munis.forEach(function(muni) {
           var latlng = new L.LatLng(muni.lat, muni.lon);
           var marker = new L.CircleMarker(latlng);
-          marker.bindPopup("<h3>" + muni.id + "</h3>");
-          marker.setRadius(4);
+          marker.bindPopup(
+            '<div class="container">' +
+  
+            '<table>' +
+      
+            '<tbody>' +
+
+            '<tr>' +
+            '<td><b>Vehicle: </b></td>' + 
+            '<td><span class="label label-info">' + muni.id + '</span></td>' +
+            '<td><b>Route: </b></td>' + 
+            '<td><span class="label label-info">' + muni.routetag + '</span></td>' +
+            '</tr>' +
+
+            '<tr>' +
+            '<td><b>Direction: </b></td>' + 
+            '<td><span class="label label-info">' + muni.dirtag + '</span></td>' +
+            '<td><b>Speed (Km/Hr): </b></td>' + 
+            '<td><span class="badge badge-important">' + muni.speedkmhr + '</span></td>' +
+            '</tr>' +
+
+            '<tr>' +
+            '<td><b>Heading: </b></td>' + 
+            '<td><span class="badge badge-info">' + muni.heading + '</span></td>' +
+            '<td><b>Seconds Since Update: </b></td>' + 
+            '<td><span class="badge badge-warning">' + muni.secssincereport + '</span></td>' +
+            '</tr>' +
+
+            '</tbody>' +
+
+            '</table>' +
+
+            '</div>'
+          );
+          marker.setRadius(6);
           group.addLayer(marker);
         });
       }
@@ -36,9 +70,15 @@ if (Meteor.is_client) {
               updateMap(map, group, Munis.find(), L);
             }
       });
-
     }
 
+  });
+
+  Meteor.autosubscribe(function () {
+    //Meteor.subscribe("munis", {routetag: "N"});
+    Meteor.subscribe("munis", {});
+    Meteor.subscribe("routes", {});
+    Meteor.subscribe("alerts");
   });
 
   Template.locations.munis = function () {
@@ -50,12 +90,11 @@ if (Meteor.is_client) {
   }
   
   Template.routes.events = {
-  'click .route': function () {
+  'click .route': function (data) {
+    console.log(data.target);
     $(".routes").remove();
     $("#map").css('visibility', 'visible');
-    console.log("clicked!");
   }
-
 };
 
 }
@@ -64,6 +103,16 @@ if (Meteor.is_server) {
   Meteor.startup(function () {
     console.log("munis server starting...");
     console.log("starting poll of muni real-time service...");
+
+    Meteor.publish("munis", function (arg) {
+      return Munis.find(arg);
+    });
+    Meteor.publish("routes", function () {
+      return Routes.find();
+    });
+    Meteor.publish("alerts", function () {
+      return Alerts.find();
+    });
 
     getMuniRouteList();
     update();
@@ -89,7 +138,7 @@ if (Meteor.is_server) {
       var lastTime = "0";
       console.log(d.getTime() + ": calling muni service...");
       Meteor.http.call("GET", 
-        "http://webservices.nextbus.com/service/publicXMLFeed?command=vehicleLocations&a=sf-muni&r=N&t=" + lastTime,
+        "http://webservices.nextbus.com/service/publicXMLFeed?command=vehicleLocations&a=sf-muni&t=" + lastTime,
         null, 
         function(error, result) {
           console.log(d.getTime() + ": call to muni service complete");
@@ -105,9 +154,14 @@ if (Meteor.is_server) {
               Munis.insert(muni);
             } else { 
               Munis.update({id: muni['id']}, 
-                           {$set: {lat: muni['lat'], 
+                           {$set: {routetag: muni['routetag'],
+                                   dirtag: muni['dirtag'],
+                                   predictable: muni['predictable'],
+                                   heading: muni['heading'],
+                                   speedkmhr: muni['speedkmhr'],
+                                   lat: muni['lat'], 
                                    lon: muni['lon'], 
-                       secsSinceReport: muni['secssincereport']}});
+                       secssincereport: muni['secssincereport']}});
             }
           }
           Alerts.insert({name: "alert"});
